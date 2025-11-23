@@ -3,7 +3,7 @@
   "audioFile": "Delta.wav",
   "background": "squishied.jpg",
   "lanes": 4,
-  "approachTime": 0.5,
+  "approachTime": 1.0,
   "keymap": ["D","F","J","K"],
   "laneColors": ["#C83C3C","#3CC83C","#3C6CC8","#C89E3C"],
   "notes": [
