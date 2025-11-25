@@ -1,8 +1,3 @@
-/**
- * RhythmGame.java
- * - Base OOP Version
- * - SFX Update: Always play sound on key press (Responsive)
- */
 
 import com.google.gson.Gson;
 import javax.sound.sampled.*;
@@ -120,8 +115,8 @@ public class RhythmGame {
 
     static class HoldNote extends Note {
         private final double length;
-        public boolean isHolding = false; // Public agar bisa diakses GamePanel
-        public boolean completed = false; // Penanda benar-benar selesai
+        public boolean isHolding = false;
+        public boolean completed = false;
 
         public HoldNote(int lane, double time, double length) {
             super(lane, time);
@@ -132,7 +127,6 @@ public class RhythmGame {
 
         @Override
         public void update(double currentTime, ScoreManager sm) {
-            // Jika terlewat (tidak ditekan sama sekali)
             if (!isHolding && !isHit && !isMissed && currentTime > time + Judgement.MISS.window) {
                 isMissed = true;
                 sm.addScore(Judgement.MISS);
@@ -141,7 +135,6 @@ public class RhythmGame {
 
         @Override
         public void onKeyPressed(double diff, ScoreManager sm) {
-            // SAAT DITEKAN: Cuma set isHolding, JANGAN set isHit = true dulu!
             if (Math.abs(diff) <= Judgement.MISS.window) {
                 isHolding = true;
             }
@@ -150,14 +143,13 @@ public class RhythmGame {
         @Override
         public void onKeyReleased(double currentTime, ScoreManager sm) {
             if (isHolding) {
-                // Cek apakah dilepas di waktu yang tepat (mendekati akhir)
+               
                 if (currentTime >= time + length - 0.2) {
                     completed = true; 
-                    isHit = true; // BARU DISINI kita anggap note selesai (hilang)
+                    isHit = true; 
                     sm.addScore(Judgement.PERFECT);
                     SFXManager.play("finish"); 
                 } else {
-                    // Dilepas kecepetan -> Miss
                     isMissed = true;
                     sm.addScore(Judgement.MISS);
                 }
@@ -207,15 +199,12 @@ public class RhythmGame {
         public void keyPressed(KeyEvent e) {
             Integer lane = keyToLaneMap.get(e.getKeyCode());
             if (lane != null) {
-                // PERBAIKAN DISINI:
-                // Cek dulu, apakah tombol sudah ditahan sebelumnya?
-                // Jika BELUM (!keysHeld), baru jalankan perintah.
+          
                 if (!keysHeld[lane]) {
-                    keysHeld[lane] = true;       // Tandai tombol sedang ditekan
-                    engine.handlePress(lane);    // Bunyikan suara & cek hit
+                    keysHeld[lane] = true;     
+                    engine.handlePress(lane);   
                 }
             } else {
-                // Tombol lain (Space/Enter) untuk start game
                 if (!engine.isRunning()) engine.start();
             }
         }
@@ -267,15 +256,13 @@ public class RhythmGame {
         public void start() { running = true; audio.play(); startTime = System.nanoTime() / 1_000_000_000.0; }
         public void update() { if (!running) return; for (Note n : notes) n.update(getAudioTime(), scoreManager); }
         
-        // === LOGIKA UTAMA DIPINDAHKAN KESINI ===
+      
         public void handlePress(int lane) {
             if (!running) return;
 
-            // 1. BUNYIKAN SFX SELALU (Tanpa Syarat)
-            // Setiap kali tombol ditekan, dia akan bunyi "normal"
             SFXManager.play("normal"); 
 
-            // 2. Baru cek logika Hit/Miss
+      
             double now = getAudioTime(); Note closest = null; double minDiff = Double.MAX_VALUE;
             for (Note n : notes) { if (n.lane == lane && !n.isHit && !n.isMissed) { double diff = n.time - now; if (Math.abs(diff) < minDiff) { minDiff = Math.abs(diff); closest = n; }}}
             if (closest != null) closest.onKeyPressed(closest.time - now, scoreManager);
@@ -365,50 +352,47 @@ public class RhythmGame {
             double speed = HIT_Y / approachTime; 
 
             for (Note n : engine.getNotes()) {
-                // 1. LOGIKA MENGHILANGKAN NOTE
-                if (n.isMissed()) continue; // Kalau miss, hilang
+             
+                if (n.isMissed()) continue; 
                 
-                // Kalau TapNote: Hilang jika isHit = true
+             
                 if (n instanceof TapNote && n.isHit()) continue; 
                 
-                // Kalau HoldNote: Hilang HANYA jika completed = true
+               
                 if (n instanceof HoldNote && ((HoldNote)n).completed) continue; 
 
-                // Cek apakah note masih dalam jangkauan layar
+              
                 double timeDiff = n.getTime() - currentTime;
-                // Note: Kita perbolehkan timeDiff negatif besar khusus untuk HoldNote yang sedang ditahan
+             
                 if (!(n instanceof HoldNote) && (timeDiff > approachTime || timeDiff < -1.0)) continue;
 
-                // Hitung posisi dasar X dan Y
+               
                 int x = startX + n.getLane() * NOTE_WIDTH;
                 int y = (int) (HIT_Y - (timeDiff * speed));
                 Color c = LANE_COLORS[n.getLane() % LANE_COLORS.length];
 
-                // --- PENGGAMBARAN KHUSUS HOLD NOTE ---
+               
                 if (n instanceof HoldNote) {
                     HoldNote hn = (HoldNote) n;
                     int tailLength = (int) (hn.getLength() * speed);
-                    int tailY = y - tailLength; // Posisi ujung atas ekor
+                    int tailY = y - tailLength; 
                     
-                    // LOGIKA VISUAL SAAT DITAHAN
+                  
                     if (hn.isHolding) {
-                         // Jika sedang ditahan, Kepala note dikunci di garis HIT_Y
+                      
                          y = HIT_Y;
-                         
-                         // Hitung sisa durasi yang belum habis
+                        
                          double endTime = hn.getTime() + hn.getLength();
                          double remainingTime = endTime - currentTime;
                          
-                         // Hitung ulang panjang ekor berdasarkan sisa waktu
+                       
                          tailLength = (int) (remainingTime * speed);
                          
-                         // Pastikan ekor tidak jadi negatif
                          if (tailLength < 0) tailLength = 0;
                          
                          tailY = y - tailLength;
                     }
                     
-                    // Gambar Ekor (Buntut)
                     g.setColor(c.darker()); 
                     g.fillRect(x + 15, tailY, NOTE_WIDTH - 30, tailLength);
                     g.setColor(c); 
@@ -416,8 +400,6 @@ public class RhythmGame {
                 }
 
                 // --- GAMBAR KEPALA NOTE ---
-                // Hanya gambar kepala jika hold note belum habis total
-                // atau jika itu tap note biasa
                 g.setColor(c); 
                 g.fillRoundRect(x + 5, y - 10, NOTE_WIDTH - 10, 20, 10, 10);
                 
@@ -447,4 +429,3 @@ public class RhythmGame {
         }
     }
 }
-

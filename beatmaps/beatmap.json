@@ -1,0 +1,12 @@
+{
+    "audio": "JJk.wav",
+    "background": "sasuke.jpg",
+    "notes": [
+        { "time": 500, "type": "tap", "lane": 1 },
+        { "time": 900, "type": "tap", "lane": 3 },
+        { "time": 1300, "type": "tap", "lane": 2 },
+        { "time": 1700, "type": "hold", "lane": 4, "endTime": 2600 },
+        { "time": 2200, "type": "tap", "lane": 1 },
+        { "time": 2600, "type": "tap", "lane": 2 }
+    ]
+}
