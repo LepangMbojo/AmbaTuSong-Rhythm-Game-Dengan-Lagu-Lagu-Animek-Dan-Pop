@@ -1,5 +1,4 @@
 import java.sql.*;
-import javax.swing.*;
 
 public class KoneksiDatabase {
 
@@ -16,7 +15,7 @@ public class KoneksiDatabase {
                 System.out.println("Koneksi berhasil!");
             }
         } catch (Exception e) {
-            JOptionPane.showMessageDialog(null, "Gagal koneksi DB: " + e.getMessage());
+            System.out.println("Koneksi gagal: " + e.getMessage());
         }
     }
 

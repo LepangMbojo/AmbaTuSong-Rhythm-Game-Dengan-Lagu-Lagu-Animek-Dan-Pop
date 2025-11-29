@@ -7,59 +7,71 @@ public class RegisterPanel extends JPanel {
     private final Main main;
     private JTextField usernameField;
     private JPasswordField passwordField;
+    private Image backgroundImage;
 
     public RegisterPanel(Main main) {
         this.main = main;
+
         setLayout(null);
-        setBackground(Color.BLACK);
+
+        // === LOAD BACKGROUND ===
+        backgroundImage = new ImageIcon("../beatmaps/bg.jpeg").getImage();
 
         JLabel title = new JLabel("REGISTER", SwingConstants.CENTER);
         title.setFont(new Font("Poppins", Font.BOLD, 28));
-        title.setForeground(Color.BLACK);
+        title.setForeground(Color.WHITE);
         title.setBounds(0, 40, 800, 40);
         add(title);
 
         JLabel userLabel = new JLabel("Username:");
-        userLabel.setBounds(270, 140, 260, 25);
         userLabel.setForeground(Color.WHITE);
+        userLabel.setBounds(270, 140, 260, 25);
         add(userLabel);
 
         usernameField = new JTextField();
         usernameField.setBounds(270, 165, 260, 32);
-        usernameField.setForeground(Color.BLACK);
         add(usernameField);
 
         JLabel passLabel = new JLabel("Password:");
-        passLabel.setBounds(270, 210, 260, 25);
         passLabel.setForeground(Color.WHITE);
+        passLabel.setBounds(270, 210, 260, 25);
         add(passLabel);
 
         passwordField = new JPasswordField();
         passwordField.setBounds(270, 235, 260, 32);
-        passLabel.setForeground(Color.BLACK);
         add(passwordField);
 
         JButton registerBtn = new JButton("Daftar");
         registerBtn.setBounds(270, 290, 260, 40);
-        registerBtn.setForeground(Color.BLACK);
         registerBtn.addActionListener(e -> doRegister());
         add(registerBtn);
 
-        JButton back = new JButton("Kembali");
-        back.setBounds(270, 340, 260, 40);
-        back.setForeground(Color.BLACK);
-        back.addActionListener(e -> main.showPanel("login"));
-        add(back);
+        JButton backBtn = new JButton("Kembali");
+        backBtn.setBounds(270, 340, 260, 40);
+        backBtn.addActionListener(e -> main.showPanel("login"));
+        add(backBtn);
+    }
+
+    // === AGAR BACKGROUND BISA DICETAK ===
+    @Override
+    protected void paintComponent(Graphics g) {
+        super.paintComponent(g);
+        g.drawImage(backgroundImage, 0, 0, getWidth(), getHeight(), this);
     }
 
     private void doRegister() {
         String user = usernameField.getText().trim();
         String pass = new String(passwordField.getPassword());
 
+        if (user.isEmpty() || pass.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Semua field wajib diisi!");
+            return;
+        }
+
         try (Connection c = KoneksiDatabase.getConnection();
-                PreparedStatement ps = c.prepareStatement(
-                        "INSERT INTO users(username,password) VALUES(?,?)"
-                )) {
+             PreparedStatement ps = c.prepareStatement(
+                    "INSERT INTO users(username, password) VALUES(?, ?)"
+             )) {
 
             ps.setString(1, user);
             ps.setString(2, pass);
@@ -69,7 +81,8 @@ public class RegisterPanel extends JPanel {
             main.showPanel("login");
 
         } catch (SQLException ex) {
-            JOptionPane.showMessageDialog(this, "Username sudah dipakai!");
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this, "ERROR SQL: " + ex.getMessage());
         }
     }
 }

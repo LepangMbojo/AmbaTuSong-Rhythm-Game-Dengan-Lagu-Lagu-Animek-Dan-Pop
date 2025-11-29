@@ -9,21 +9,27 @@ public class LoginPanel extends JPanel {
     private JTextField usernameField;
     private JPasswordField passwordField;
 
+    private Image backgroundImage;  // 🔥 Tambahan untuk background
+
     public LoginPanel(Main main) {
         this.main = main;
         setLayout(null);
 
-        // BACKGROUND HITAM
-        setBackground(Color.BLACK);
+        // === 🔥 LOAD BACKGROUND IMAGE ===
+       // === FIX: load image dari folder beatmaps ===
+        backgroundImage = new ImageIcon("../beatmaps/bg.jpeg").getImage();
+
+        // (hilangkan setBackground(Color.BLACK); karena pakai gambar)
+        
 
         JLabel title = new JLabel("LOGIN", SwingConstants.CENTER);
         title.setFont(new Font("Poppins", Font.BOLD, 28));
-        title.setForeground(Color.WHITE);  // teks putih
+        title.setForeground(Color.WHITE);
         title.setBounds(0, 40, 800, 40);
         add(title);
 
         JLabel userLabel = new JLabel("Username:");
-        userLabel.setForeground(Color.WHITE); // teks putih
+        userLabel.setForeground(Color.WHITE);
         userLabel.setBounds(270, 140, 260, 25);
         add(userLabel);
 
@@ -32,7 +38,7 @@ public class LoginPanel extends JPanel {
         add(usernameField);
 
         JLabel passLabel = new JLabel("Password:");
-        passLabel.setForeground(Color.WHITE); // teks putih
+        passLabel.setForeground(Color.WHITE);
         passLabel.setBounds(270, 210, 260, 25);
         add(passLabel);
 
@@ -42,15 +48,31 @@ public class LoginPanel extends JPanel {
 
         JButton loginBtn = new JButton("Login");
         loginBtn.setBounds(270, 290, 260, 40);
-        loginBtn.addActionListener(e -> doLogin());
+
+        loginBtn.addActionListener(e -> {
+            System.out.println("Tombol login ditekan");
+            doLogin();
+        });
+
         add(loginBtn);
 
         JButton registerBtn = new JButton("Register");
         registerBtn.setBounds(270, 340, 260, 40);
-        registerBtn.addActionListener(e -> main.showPanel("register"));
+
+        registerBtn.addActionListener(e -> {
+            System.out.println("Tombol register ditekan");
+            main.showPanel("register");
+        });
+
         add(registerBtn);
     }
 
+    // === 🔥 RENDER GAMBAR BACKGROUND ===
+    @Override
+    protected void paintComponent(Graphics g) {
+        super.paintComponent(g);
+        g.drawImage(backgroundImage, 0, 0, getWidth(), getHeight(), this);
+    }
 
     // Pemutar suara
     private void playSound(String file) {
@@ -68,10 +90,15 @@ public class LoginPanel extends JPanel {
         String user = usernameField.getText().trim();
         String pass = new String(passwordField.getPassword());
 
+        if (user.isEmpty() || pass.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Username / Password tidak boleh kosong!");
+            return;
+        }
+
         try (Connection c = KoneksiDatabase.getConnection();
-                PreparedStatement ps = c.prepareStatement(
-                        "SELECT * FROM users WHERE username=? AND password=?"
-                )) {
+             PreparedStatement ps = c.prepareStatement(
+                     "SELECT * FROM users WHERE username=? AND password=?"
+             )) {
 
             ps.setString(1, user);
             ps.setString(2, pass);

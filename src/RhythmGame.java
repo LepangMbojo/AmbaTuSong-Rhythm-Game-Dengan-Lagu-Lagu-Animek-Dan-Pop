@@ -428,4 +428,16 @@ public class RhythmGame {
             }
         }
     }
+
+    public void start(String selectedBeatmap) {
+        JFrame frame = new JFrame("AmbatuSong");
+        frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        frame.setResizable(false);
+        GamePanel panel = new GamePanel();
+        frame.add(panel);
+        frame.pack();
+        frame.setLocationRelativeTo(null);
+        frame.setVisible(true);
+        panel.initializeGame(selectedBeatmap);
+    }
 }

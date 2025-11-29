@@ -1,6 +1,8 @@
 public class Session {
     private static int userId = -1;
-    static String username = null;
+    public static String username = null;
+    public static String selectedBeatmap = null;
+
 
     public static void setCurrentUser(int id, String name) {
         userId = id; username = name;

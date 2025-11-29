@@ -1,5 +1,5 @@
-import javax.swing.*;
 import java.awt.*;
+import javax.swing.*;
 
 public class Main extends JFrame {
 
@@ -10,7 +10,7 @@ public class Main extends JFrame {
 
         // Inisialisasi koneksi database
         KoneksiDatabase.init(
-                "jdbc:mysql://localhost:3306/ambatusong_db",
+                "jdbc:mysql://localhost:3306/ambatusong",
                 "root",
                 ""
         );
@@ -19,35 +19,48 @@ public class Main extends JFrame {
         setSize(800, 500);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
+        setResizable(false);
 
+        // Gunakan CardLayout
         card = new CardLayout();
         container = new JPanel(card);
 
-        // Daftarkan Panel
-        LoginPanel login = new LoginPanel(this);
-        RegisterPanel register = new RegisterPanel(this);
-        MenuPanel menu = new MenuPanel(this);
-
-        container.add(login, "login");
-        container.add(register, "register");
-        container.add(menu, "menu");
+        // =============================
+        // REGISTER PANEL YANG TIDAK BERAT
+        // =============================
+        container.add(new LoginPanel(this), "login");
+        container.add(new RegisterPanel(this), "register");
+        container.add(new MenuPanel(this), "menu");
 
         add(container);
 
-        showPanel("login");
+        SwingUtilities.invokeLater(() -> showPanel("login"));
     }
 
+    // Fungsi ganti panel
     public void showPanel(String name) {
         card.show(container, name);
     }
 
-    // Dipanggil ketika login berhasil
+    // Fungsi pergi ke song select
+    public void goToSongSelect() {
+        SongSelectPanel songPanel = new SongSelectPanel(this);
+        container.add(songPanel, "songselect");
+        showPanel("songselect");
+    }
+
+
+    // Dipanggil ketika login sukses
     public void onLoginSuccess(String username) {
         Session.username = username;
+        Session.selectedBeatmap = null;
         showPanel("menu");
     }
 
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> new Main().setVisible(true));
+        SwingUtilities.invokeLater(() -> {
+            Main main = new Main();
+            main.setVisible(true);
+        });
     }
 }
