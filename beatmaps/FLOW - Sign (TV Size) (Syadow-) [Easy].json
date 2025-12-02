@@ -1,7 +1,7 @@
 {
   "title": "sign flow",
   "audioFile": "audio.wav",
-  "background": "sasuke.jpg",
+  "background": "naruto.jpg",
   "lanes": 4,
   "approachTime": 1.0,
   "keymap": ["D","F","J","K"],

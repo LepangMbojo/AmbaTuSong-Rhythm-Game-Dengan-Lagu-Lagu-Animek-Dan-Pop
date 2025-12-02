@@ -1,77 +1,124 @@
 import java.awt.*;
+import java.awt.event.*;
 import java.io.File;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import javax.swing.*;
 
-public class SongSelectPanel extends JPanel {
+public class SongSelectPanel extends JPanel implements KeyListener {
+    
+    private Main main; // Referensi ke Main Frame
+    private List<File> beatmaps = new ArrayList<>();
+    private int selectedIndex = 0;
+    
+    private final Font titleFont = new Font("Arial", Font.BOLD, 40);
+    private final Font listFont = new Font("Arial", Font.PLAIN, 24);
 
-    private final Main main;
-    private File[] songFiles;
-
+    // --- CONSTRUCTOR: TERIMA PARAMETER MAIN ---
     public SongSelectPanel(Main main) {
-        this.main = main;
-
+        this.main = main; // Simpan Main agar bisa dipanggil nanti
+        
         setLayout(null);
-        setBackground(Color.BLACK);
+        setBackground(Color.DARK_GRAY);
+        setFocusable(true);
+        addKeyListener(this);
+    }
 
-        JLabel title = new JLabel("PILIH LAGU", SwingConstants.CENTER);
-        title.setFont(new Font("Poppins", Font.BOLD, 26));
-        title.setForeground(Color.WHITE);
-        title.setBounds(0, 20, 800, 40);
-        add(title);
+    public void refreshBeatmaps() {
+        beatmaps.clear();
+        // Mencari folder beatmaps di root project
+        File folder = new File("beatmaps"); 
+        
+        if (folder.exists() && folder.isDirectory()) {
+            File[] files = folder.listFiles((dir, name) -> name.endsWith(".json"));
+            if (files != null) {
+                Collections.addAll(beatmaps, files);
+            }
+        }
+        
+        if (selectedIndex >= beatmaps.size()) selectedIndex = 0;
+        repaint();
+    }
 
-        // ===== DAPATKAN FOLDER beatmaps =====
-        // Pastikan path mengarah ke root project
-        File dir = new File(System.getProperty("user.dir") + File.separator + "../beatmaps");
-        dir = dir.getAbsoluteFile(); // pastikan absolute
-        System.out.println("Cek folder beatmaps: " + dir.getAbsolutePath());
+    @Override
+    protected void paintComponent(Graphics g) {
+        super.paintComponent(g);
+        Graphics2D g2 = (Graphics2D) g;
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-        if (!dir.exists()) {
-            JOptionPane.showMessageDialog(this, "Folder beatmaps tidak ditemukan!");
-            songFiles = new File[0];
+        // Background
+        g2.setColor(new Color(20, 20, 30));
+        g2.fillRect(0, 0, getWidth(), getHeight());
+
+        // Judul
+        g2.setColor(Color.CYAN);
+        g2.setFont(titleFont);
+        String title = "SELECT SONG";
+        int tw = g2.getFontMetrics().stringWidth(title);
+        g2.drawString(title, (getWidth() - tw) / 2, 80);
+
+        // List Lagu
+        g2.setFont(listFont);
+        int startY = 180;
+
+        if (beatmaps.isEmpty()) {
+            g2.setColor(Color.RED);
+            g2.drawString("No beatmaps found in 'beatmaps/'!", 100, 200);
         } else {
-            File[] files = dir.listFiles((d, f) -> f.toLowerCase().endsWith(".json"));
-            if (files == null || files.length == 0) {
-                JOptionPane.showMessageDialog(this, "Tidak ada lagu di folder beatmaps!");
-                files = new File[0];
-            }
-            songFiles = files;
-        }
-
-        // ===== TAMBAHKAN KE LISTMODEL =====
-        DefaultListModel<String> listModel = new DefaultListModel<>();
-        for (File f : songFiles) {
-            System.out.println("Ditemukan lagu: " + f.getName());
-            listModel.addElement(f.getName());
-        }
-
-        JList<String> songList = new JList<>(listModel);
-        songList.setBounds(200, 80, 400, 300);
-        add(songList);
-
-        JButton pilih = new JButton("Pilih Lagu");
-        pilih.setBounds(200, 400, 190, 40);
-        pilih.addActionListener(e -> {
-            String selected = songList.getSelectedValue();
-            if (selected == null) {
-                JOptionPane.showMessageDialog(this, "Pilih lagu dulu!");
-                return;
-            }
-
-            // Gunakan absolute path untuk menghindari error
-            for (File f : songFiles) {
-                if (f.getName().equals(selected)) {
-                    Session.selectedBeatmap = f.getAbsolutePath();
-                    break;
+            for (int i = 0; i < beatmaps.size(); i++) {
+                String name = beatmaps.get(i).getName().replace(".json", "");
+                
+                if (i == selectedIndex) {
+                    // Highlight
+                    g2.setColor(new Color(255, 255, 255, 40));
+                    g2.fillRect(50, startY + (i * 50) - 35, getWidth() - 100, 45);
+                    g2.setColor(Color.YELLOW);
+                    g2.drawString("> " + name, 80, startY + (i * 50));
+                } else {
+                    g2.setColor(Color.GRAY);
+                    g2.drawString(name, 100, startY + (i * 50));
                 }
             }
-            JOptionPane.showMessageDialog(this, "Lagu dipilih: " + selected);
-            main.showPanel("menu");
-        });
-        add(pilih);
-
-        JButton back = new JButton("Kembali");
-        back.setBounds(410, 400, 190, 40);
-        back.addActionListener(e -> main.showPanel("menu"));
-        add(back);
+        }
+        
+        // Footer
+        g2.setColor(Color.WHITE);
+        g2.setFont(new Font("Arial", Font.PLAIN, 14));
+        g2.drawString("[ESC] Back to Menu  |  [ENTER] Play", 20, getHeight()-20);
     }
+
+    @Override
+    public void keyPressed(KeyEvent e) {
+        int code = e.getKeyCode();
+        
+        if (code == KeyEvent.VK_UP) {
+            selectedIndex--;
+            if (selectedIndex < 0) selectedIndex = beatmaps.size() - 1;
+            repaint();
+        } 
+        else if (code == KeyEvent.VK_DOWN) {
+            selectedIndex++;
+            if (selectedIndex >= beatmaps.size()) selectedIndex = 0;
+            repaint();
+        } 
+        else if (code == KeyEvent.VK_ESCAPE) {
+            // PANGGIL MAIN UNTUK GANTI LAYAR
+            // Kita gunakan instance 'main' yang disimpan tadi
+            if (main != null) {
+                main.showPanel("MENU"); 
+            }
+        } 
+        else if (code == KeyEvent.VK_ENTER) {
+            if (!beatmaps.isEmpty()) {
+                String path = beatmaps.get(selectedIndex).getPath();
+                
+                // PANGGIL MAIN UNTUK MULAI GAME
+                Main.playGame(path);
+            }
+        }
+    }
+
+    @Override public void keyReleased(KeyEvent e) {}
+    @Override public void keyTyped(KeyEvent e) {}
 }

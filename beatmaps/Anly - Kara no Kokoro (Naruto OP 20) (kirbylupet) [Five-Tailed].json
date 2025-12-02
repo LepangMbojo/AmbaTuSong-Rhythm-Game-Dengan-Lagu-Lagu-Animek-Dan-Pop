@@ -3,7 +3,7 @@
   "audioFile": "20 OP FULL Anly - ().wav",
   "background": "Naruto Shippuuden Opening 20 [1080p] - YouTube.avi",
   "lanes": 4,
-  "approachTime": 1.0,
+  "approachTime": 0.5,
   "keymap": ["S","D","J","K"],
   "laneColors": ["#C83C3C","#3CC83C","#3C6CC8","#C89E3C"],
   "notes": [
