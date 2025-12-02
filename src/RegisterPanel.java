@@ -12,6 +12,7 @@ public class RegisterPanel extends JPanel {
     public RegisterPanel(Main main) {
         this.main = main;
 
+        
         setLayout(null);
 
         // === LOAD BACKGROUND ===
