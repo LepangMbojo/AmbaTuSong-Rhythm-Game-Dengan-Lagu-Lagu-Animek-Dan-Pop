@@ -1,25 +1,55 @@
 import java.sql.*;
+import java.util.Vector;
+import javax.swing.table.DefaultTableModel;
 
 public class KoneksiDatabase {
+    
+    private static final String URL = "jdbc:mysql://localhost:3306/rhythm_db";
+    private static final String USER = "root";
+    private static final String PASS = "";
 
-    private static String url, user, pass;
+    // --- [FIX] TAMBAHKAN METHOD INI AGAR LOGIN/REGISTER BISA JALAN ---
+    public static Connection getConnection() throws SQLException {
+        return DriverManager.getConnection(URL, USER, PASS);
+    }
 
-    public static void init(String u, String usr, String ps) {
-        url = u;
-        user = usr;
-        pass = ps;
-
-        try {
-            Class.forName("com.mysql.cj.jdbc.Driver");
-            try (Connection c = DriverManager.getConnection(url, user, pass)) {
-                System.out.println("Koneksi berhasil!");
-            }
+    public static void saveScore(String username, String songTitle, int score, int combo, String grade) {
+        String query = "INSERT INTO scores (username, song_title, score, combo, grade) VALUES (?, ?, ?, ?, ?)";
+        try (Connection conn = getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(query)) {
+            pstmt.setString(1, username);
+            pstmt.setString(2, songTitle);
+            pstmt.setInt(3, score);
+            pstmt.setInt(4, combo);
+            pstmt.setString(5, grade);
+            pstmt.executeUpdate();
         } catch (Exception e) {
-            System.out.println("Koneksi gagal: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
-    public static Connection getConnection() throws SQLException {
-        return DriverManager.getConnection(url, user, pass);
+    public static DefaultTableModel getGlobalLeaderboard() {
+        String[] columns = {"Rank", "Player", "Song", "Score", "Grade"};
+        DefaultTableModel model = new DefaultTableModel(null, columns);
+        String query = "SELECT username, song_title, score, grade FROM scores ORDER BY score DESC LIMIT 10";
+
+        try (Connection conn = getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(query)) {
+
+            int rank = 1;
+            while (rs.next()) {
+                Vector<Object> row = new Vector<>();
+                row.add(rank++);
+                row.add(rs.getString("username"));
+                row.add(rs.getString("song_title"));
+                row.add(rs.getInt("score"));
+                row.add(rs.getString("grade"));
+                model.addRow(row);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return model;
     }
 }

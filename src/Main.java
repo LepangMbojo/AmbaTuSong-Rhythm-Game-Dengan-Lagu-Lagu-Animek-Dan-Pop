@@ -7,12 +7,13 @@ public class Main extends JFrame {
     private CardLayout cardLayout;
     private JPanel mainPanel;
 
-    // Panel-Panel Halaman
     private LoginPanel loginPanel;       
     private RegisterPanel registerPanel; 
     private MenuPanel menuPanel;
     private SongSelectPanel songSelectPanel;
     private RhythmGame rhythmGamePanel;
+    private ResultPanel resultPanel;
+    private LeaderboardPanel leaderboardPanel;
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(Main::new);
@@ -23,48 +24,54 @@ public class Main extends JFrame {
         instance = this; 
 
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        
+        // --- [FIX] UKURAN TETAP 1000x600 (TIDAK FULL SCREEN) ---
         setSize(1000, 600);
-        setResizable(false);
-        setLocationRelativeTo(null);
+        setResizable(false); // Agar tidak bisa diubah ukurannya
+        setLocationRelativeTo(null); // Posisi tengah layar
 
         cardLayout = new CardLayout();
         mainPanel = new JPanel(cardLayout);
 
-        // 1. Inisialisasi Panel (Tetap load LoginPanel agar tidak error saat compile)
-        try {
-            loginPanel = new LoginPanel(this);       
-            registerPanel = new RegisterPanel(this); 
-            menuPanel = new MenuPanel(this);         
-        } catch (Exception e) {
-            System.out.println("Info: Panel UI error/default.");
-        }
+        // Inisialisasi Panel
+        try { loginPanel = new LoginPanel(this); } catch (Exception e) {}
+        try { registerPanel = new RegisterPanel(this); } catch (Exception e) {}
+        try { menuPanel = new MenuPanel(this); } catch (Exception e) {}
+        try { leaderboardPanel = new LeaderboardPanel(this); } catch (Exception e) {}
+
         
         songSelectPanel = new SongSelectPanel(this);
         rhythmGamePanel = new RhythmGame();
+        resultPanel = new ResultPanel(this);
 
-        // 2. Masukkan ke Tumpukan
+        // Add ke CardLayout
         if (loginPanel != null) mainPanel.add(loginPanel, "LOGIN");
         if (registerPanel != null) mainPanel.add(registerPanel, "REGISTER");
         if (menuPanel != null) mainPanel.add(menuPanel, "MENU");
+        if (leaderboardPanel != null) mainPanel.add(leaderboardPanel, "LEADERBOARD");
         
         mainPanel.add(songSelectPanel, "SONG_SELECT");
         mainPanel.add(rhythmGamePanel, "GAME");
+        mainPanel.add(resultPanel, "RESULT");
+        
 
         add(mainPanel);
         setVisible(true);
 
-        // --- [BYPASS] Langsung masuk ke Pilih Lagu ---
-        showCard("SONG_SELECT");
+        showCard("LOGIN"); // Langsung ke Menu
     }
 
     // --- METHOD NAVIGASI ---
-
     public static void showCard(String cardName) {
         if (instance != null) {
-            if (cardName.equals("MENU") || cardName.equals("SONG_SELECT")) {
+            if (cardName.equals("MENU") || cardName.equals("SONG_SELECT") || cardName.equals("RESULT")) {
                 instance.rhythmGamePanel.stopGame(); 
             }
             
+            if (cardName.equals("LEADERBOARD") && instance.leaderboardPanel != null) {
+                instance.leaderboardPanel.loadData();
+            }
+
             instance.cardLayout.show(instance.mainPanel, cardName);
 
             if (cardName.equals("MENU") && instance.menuPanel != null) instance.menuPanel.requestFocusInWindow();
@@ -77,30 +84,26 @@ public class Main extends JFrame {
 
     public static void playGame(String beatmapPath) {
         if (instance != null) {
-            // [FIX 2] Gunakan method .start() sesuai RhythmGame.java Anda
-            instance.rhythmGamePanel.start(beatmapPath); 
-            
-            instance.cardLayout.show(instance.mainPanel, "GAME");
-            instance.rhythmGamePanel.requestFocusInWindow();
+            instance.rhythmGamePanel.start(beatmapPath); // Siapkan game
+            instance.cardLayout.show(instance.mainPanel, "GAME"); // Tampilkan panel game
+            instance.rhythmGamePanel.requestFocusInWindow(); // Fokus keyboard
         }
     }
     
-    public void showPanel(String name) {
-        showCard(name);
+    public static void showResult(int score, int combo, String songPath) {
+        if (instance != null) {
+            instance.resultPanel.showResult(score, combo, songPath);
+            instance.cardLayout.show(instance.mainPanel, "RESULT");
+        }
     }
     
-    public void goToSongSelect() {
-        showCard("SONG_SELECT");
-    }
+    public void showPanel(String name) { showCard(name); }
+    public void goToSongSelect() { showCard("SONG_SELECT"); }
+    public static void showSongSelectStatic() { showCard("SONG_SELECT"); }
+    public void showLeaderboard() { showCard("LEADERBOARD"); }
     
-    public static void showSongSelectStatic() {
-        showCard("SONG_SELECT");
-    }
-
-    // [FIX 1] Method ini dikembalikan agar LoginPanel tidak error saat dicompile
-    // (Walaupun tidak dipakai karena kita bypass login)
     public void onLoginSuccess(String user) {
         JOptionPane.showMessageDialog(this, "Welcome, " + user + "!");
-        showPanel("MENU");
+        showCard("MENU");
     }
 }

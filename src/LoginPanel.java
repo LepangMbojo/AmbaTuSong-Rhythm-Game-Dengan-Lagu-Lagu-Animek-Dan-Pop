@@ -1,6 +1,5 @@
 import java.awt.*;
 import java.sql.*;
-import javax.sound.sampled.*;
 import javax.swing.*;
 
 public class LoginPanel extends JPanel {
@@ -8,81 +7,84 @@ public class LoginPanel extends JPanel {
     private final Main main;
     private JTextField usernameField;
     private JPasswordField passwordField;
-
-    private Image backgroundImage;  // 🔥 Tambahan untuk background
+    private Image backgroundImage;
 
     public LoginPanel(Main main) {
         this.main = main;
-        setLayout(null);
+        setLayout(new GridBagLayout()); // Gunakan GridBag agar center otomatis
+        GridBagConstraints gbc = new GridBagConstraints();
 
-        // === 🔥 LOAD BACKGROUND IMAGE ===
-       // === FIX: load image dari folder beatmaps ===
-        backgroundImage = new ImageIcon("../beatmaps/bg.jpeg").getImage();
+        // === LOAD BACKGROUND ===
+        try { backgroundImage = new ImageIcon("beatmaps/bg.jpeg").getImage(); } catch (Exception e) {}
 
-        // (hilangkan setBackground(Color.BLACK); karena pakai gambar)
+        gbc.insets = new Insets(10, 10, 10, 10);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
         
-
+        // TITLE
         JLabel title = new JLabel("LOGIN", SwingConstants.CENTER);
-        title.setFont(new Font("Poppins", Font.BOLD, 28));
-        title.setForeground(Color.WHITE);
-        title.setBounds(0, 40, 800, 40);
-        add(title);
+        title.setFont(new Font("Poppins", Font.BOLD, 40));
+        title.setForeground(Color.CYAN);
+        gbc.gridx = 0; gbc.gridy = 0; gbc.gridwidth = 2;
+        add(title, gbc);
 
+        // USERNAME
         JLabel userLabel = new JLabel("Username:");
+        userLabel.setFont(new Font("Arial", Font.BOLD, 16));
         userLabel.setForeground(Color.WHITE);
-        userLabel.setBounds(270, 140, 260, 25);
-        add(userLabel);
+        gbc.gridy = 1; gbc.gridwidth = 1;
+        add(userLabel, gbc);
 
-        usernameField = new JTextField();
-        usernameField.setBounds(270, 165, 260, 32);
-        add(usernameField);
+        usernameField = new JTextField(15);
+        usernameField.setFont(new Font("Arial", Font.PLAIN, 16));
+        gbc.gridx = 1;
+        add(usernameField, gbc);
 
+        // PASSWORD
         JLabel passLabel = new JLabel("Password:");
+        passLabel.setFont(new Font("Arial", Font.BOLD, 16));
         passLabel.setForeground(Color.WHITE);
-        passLabel.setBounds(270, 210, 260, 25);
-        add(passLabel);
+        gbc.gridx = 0; gbc.gridy = 2;
+        add(passLabel, gbc);
 
-        passwordField = new JPasswordField();
-        passwordField.setBounds(270, 235, 260, 32);
-        add(passwordField);
+        passwordField = new JPasswordField(15);
+        passwordField.setFont(new Font("Arial", Font.PLAIN, 16));
+        gbc.gridx = 1;
+        add(passwordField, gbc);
+
+        // BUTTONS PANEL
+        JPanel btnPanel = new JPanel(new GridLayout(1, 2, 10, 0));
+        btnPanel.setOpaque(false);
 
         JButton loginBtn = new JButton("Login");
-        loginBtn.setBounds(270, 290, 260, 40);
-
-        loginBtn.addActionListener(e -> {
-            System.out.println("Tombol login ditekan");
-            doLogin();
-        });
-
-        add(loginBtn);
+        styleButton(loginBtn, new Color(50, 200, 50));
+        loginBtn.addActionListener(e -> doLogin());
 
         JButton registerBtn = new JButton("Register");
-        registerBtn.setBounds(270, 340, 260, 40);
+        styleButton(registerBtn, new Color(50, 100, 200));
+        registerBtn.addActionListener(e -> main.showPanel("REGISTER"));
 
-        registerBtn.addActionListener(e -> {
-            System.out.println("Tombol register ditekan");
-            main.showPanel("register");
-        });
+        btnPanel.add(loginBtn);
+        btnPanel.add(registerBtn);
 
-        add(registerBtn);
+        gbc.gridx = 0; gbc.gridy = 3; gbc.gridwidth = 2; gbc.insets = new Insets(30, 10, 10, 10);
+        add(btnPanel, gbc);
     }
 
-    // === 🔥 RENDER GAMBAR BACKGROUND ===
+    private void styleButton(JButton btn, Color bg) {
+        btn.setFont(new Font("Arial", Font.BOLD, 14));
+        btn.setBackground(bg);
+        btn.setForeground(Color.WHITE);
+        btn.setFocusPainted(false);
+        btn.setPreferredSize(new Dimension(100, 40));
+    }
+
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
-        g.drawImage(backgroundImage, 0, 0, getWidth(), getHeight(), this);
-    }
-
-    // Pemutar suara
-    private void playSound(String file) {
-        try {
-            AudioInputStream audio = AudioSystem.getAudioInputStream(getClass().getResource(file));
-            Clip clip = AudioSystem.getClip();
-            clip.open(audio);
-            clip.start();
-        } catch (Exception e) {
-            System.out.println("Gagal memutar suara: " + e.getMessage());
+        if (backgroundImage != null) {
+            g.drawImage(backgroundImage, 0, 0, getWidth(), getHeight(), this);
+            g.setColor(new Color(0, 0, 0, 150)); // Gelapkan background
+            g.fillRect(0, 0, getWidth(), getHeight());
         }
     }
 
@@ -96,26 +98,22 @@ public class LoginPanel extends JPanel {
         }
 
         try (Connection c = KoneksiDatabase.getConnection();
-             PreparedStatement ps = c.prepareStatement(
-                     "SELECT * FROM users WHERE username=? AND password=?"
-             )) {
+             PreparedStatement ps = c.prepareStatement("SELECT * FROM users WHERE username=? AND password=?")) {
 
             ps.setString(1, user);
             ps.setString(2, pass);
-
             ResultSet rs = ps.executeQuery();
 
             if (rs.next()) {
-                playSound("/sounds/success.wav");
-                JOptionPane.showMessageDialog(this, "Login berhasil!");
+                Session.username = user; // Simpan session
                 main.onLoginSuccess(user);
             } else {
-                playSound("/sounds/error.wav");
                 JOptionPane.showMessageDialog(this, "Username atau password salah!");
             }
 
         } catch (SQLException ex) {
             ex.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Database Error: " + ex.getMessage());
         }
     }
 }

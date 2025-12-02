@@ -8,26 +8,37 @@ import javax.swing.*;
 
 public class SongSelectPanel extends JPanel implements KeyListener {
     
-    private Main main; // Referensi ke Main Frame
+    private Main main; 
     private List<File> beatmaps = new ArrayList<>();
     private int selectedIndex = 0;
     
     private final Font titleFont = new Font("Arial", Font.BOLD, 40);
     private final Font listFont = new Font("Arial", Font.PLAIN, 24);
 
-    // --- CONSTRUCTOR: TERIMA PARAMETER MAIN ---
     public SongSelectPanel(Main main) {
-        this.main = main; // Simpan Main agar bisa dipanggil nanti
-        
+        this.main = main;
         setLayout(null);
         setBackground(Color.DARK_GRAY);
+        
+        // --- [FIX PENTING] ---
+        // Agar panel 100% bisa menerima input keyboard
         setFocusable(true);
+        setRequestFocusEnabled(true);
+        
+        // Tambahkan Mouse Listener: Kalau diklik, paksa ambil fokus keyboard
+        addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                System.out.println("Panel diklik -> Request Focus");
+                requestFocusInWindow();
+            }
+        });
+
         addKeyListener(this);
     }
 
     public void refreshBeatmaps() {
         beatmaps.clear();
-        // Mencari folder beatmaps di root project
         File folder = new File("beatmaps"); 
         
         if (folder.exists() && folder.isDirectory()) {
@@ -35,9 +46,14 @@ public class SongSelectPanel extends JPanel implements KeyListener {
             if (files != null) {
                 Collections.addAll(beatmaps, files);
             }
+        } else {
+            System.out.println("ERROR: Folder 'beatmaps' tidak ditemukan!");
         }
         
         if (selectedIndex >= beatmaps.size()) selectedIndex = 0;
+        
+        // Paksa fokus setiap kali refresh
+        this.requestFocusInWindow(); 
         repaint();
     }
 
@@ -103,18 +119,21 @@ public class SongSelectPanel extends JPanel implements KeyListener {
             repaint();
         } 
         else if (code == KeyEvent.VK_ESCAPE) {
-            // PANGGIL MAIN UNTUK GANTI LAYAR
-            // Kita gunakan instance 'main' yang disimpan tadi
-            if (main != null) {
-                main.showPanel("MENU"); 
-            }
+            System.out.println("Tombol ESC ditekan -> Kembali ke Menu");
+            if (main != null) main.showPanel("MENU"); 
         } 
         else if (code == KeyEvent.VK_ENTER) {
+            // --- DEBUGGING ---
+            System.out.println("Tombol ENTER ditekan!"); 
+            
             if (!beatmaps.isEmpty()) {
                 String path = beatmaps.get(selectedIndex).getPath();
+                System.out.println("Mencoba memuat lagu: " + path);
                 
-                // PANGGIL MAIN UNTUK MULAI GAME
+                // PANGGIL MAIN
                 Main.playGame(path);
+            } else {
+                System.out.println("Error: List lagu kosong!");
             }
         }
     }

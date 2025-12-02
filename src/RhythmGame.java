@@ -18,6 +18,54 @@ public class RhythmGame extends JPanel implements Runnable {
     private InputController input;
     private Image backgroundImage;
     private Thread gameThread;
+
+    public void start(String beatmapPath) {
+        // [PERUBAHAN PENTING]: Langsung inisialisasi game di panel ini
+        // JANGAN buat new JFrame() lagi.
+        
+        engine = new GameEngine(); 
+        try {
+            engine.loadBeatmap(beatmapPath);
+            
+            // Load Background
+            if (engine.getBackgroundPath() != null) {
+                backgroundImage = Toolkit.getDefaultToolkit().createImage(engine.getBackgroundPath());
+            } else {
+                backgroundImage = null;
+            }
+
+            // Reset Input Listener
+            for(KeyListener k : getKeyListeners()) removeKeyListener(k);
+            
+            input = new InputController(engine, engine.getLanes());
+            addKeyListener(input);
+            
+            // Listener ESC: Panggil Main untuk ganti kartu, BUKAN dispose frame
+            addKeyListener(new KeyAdapter() {
+                @Override
+                public void keyPressed(KeyEvent e) {
+                    if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
+                        stopGame();
+                        Main.showCard("SONG_SELECT"); // <--- Panggil Main untuk balik menu
+                    }
+                }
+            });
+
+            // Start Thread & Engine
+            if (gameThread != null && gameThread.isAlive()) gameThread.interrupt();
+            gameThread = new Thread(this);
+            gameThread.start();
+            
+            engine.start(); // Jalankan musik
+            
+            this.requestFocusInWindow(); // Ambil fokus keyboard
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Error: " + e.getMessage());
+            Main.showCard("SONG_SELECT");
+        }
+    }
     
    public void loadAndPlay(String beatmapPath) {
         engine = new GameEngine(); 
@@ -367,19 +415,18 @@ public class RhythmGame extends JPanel implements Runnable {
         }
 
         @Override
-        public void keyPressed(KeyEvent e) {
-            Integer lane = keyToLaneMap.get(e.getKeyCode());
-            if (lane != null) {
-
-                if (!keysHeld[lane]) {
-                    keysHeld[lane] = true;
-                    engine.handlePress(lane);
-                }
-            } else {
-                if (!engine.isRunning())
-                    engine.start();
-            }
-        }
+public void keyPressed(KeyEvent e) {
+    Integer lane = keyToLaneMap.get(e.getKeyCode());
+    if (lane != null) {
+        // Cek apakah ini tekanan pertama
+        boolean isFirstPress = !keysHeld[lane];
+        keysHeld[lane] = true;
+        
+        // Kirim status isFirstPress ke engine
+        engine.handlePress(lane, isFirstPress); 
+    } 
+    // ...
+}
 
         @Override
         public void keyReleased(KeyEvent e) {
@@ -408,32 +455,34 @@ public class RhythmGame extends JPanel implements Runnable {
         private int lanes = 4;
         private double approachTime = 2.0;
         private String backgroundPath;
+        private String currentJsonPath;
+        private String bgPath;
+
 
         public void loadBeatmap(String jsonPath) throws Exception {
-            SFXManager.loadSounds();
-            Gson gson = new Gson();
-            BeatmapData bm = gson.fromJson(new FileReader(jsonPath), BeatmapData.class);
-            this.lanes = bm.lanes;
-            this.approachTime = bm.approachTime;
+            this.currentJsonPath = jsonPath;
 
-            File jsonFile = new File(jsonPath);
-            if (bm.background != null && !bm.background.isEmpty()) {
-                this.backgroundPath = new File(jsonFile.getParent(), bm.background).getAbsolutePath();
-            }
-
-            String audioPath = new File(jsonFile.getParent(), bm.audioFile).getAbsolutePath();
-            try {
-                audio.load(audioPath);
-            } catch (Exception e) {
-                System.err.println("Warning: Audio load failed.");
-            }
-
+           SFXManager.loadSounds();
+            Gson g = new Gson();
+            BeatmapData bm = g.fromJson(new FileReader(jsonPath), BeatmapData.class);
+            lanes = bm.lanes;
+            approachTime = bm.approachTime;
+            File jf = new File(jsonPath);
+            if (bm.background != null) bgPath = new File(jf.getParent(), bm.background).getAbsolutePath();
+            try { audio.load(new File(jf.getParent(), bm.audioFile).getAbsolutePath()); } catch (Exception e) {}
             notes.clear();
-            for (NoteJSON n : bm.notes) {
-                if ("hold".equalsIgnoreCase(n.type))
-                    notes.add(new HoldNote(n.lane, n.time, n.length));
-                else
-                    notes.add(new TapNote(n.lane, n.time));
+            for (NoteJSON n : bm.notes)
+                if ("hold".equalsIgnoreCase(n.type)) notes.add(new HoldNote(n.lane, n.time, n.length));
+                else notes.add(new TapNote(n.lane, n.time));
+            // GANTI BAGIAN LOAD BACKGROUND DENGAN INI:
+            if (bm.background != null && !bm.background.isEmpty()) {
+                File bgFile = new File(jf.getParent(), bm.background);
+                if (bgFile.exists()) {
+                    this.backgroundPath = bgFile.getAbsolutePath();
+                } else {
+                    System.out.println("Warning: Background image not found at: " + bgFile.getAbsolutePath());
+                    this.backgroundPath = null;
+                }
             }
         }
 
@@ -444,38 +493,52 @@ public class RhythmGame extends JPanel implements Runnable {
         }
 
         public void update() {
-            if (!running)
-                return;
-            for (Note n : notes)
-                n.update(getAudioTime(), scoreManager);
+            if (!running) return;
+            for (Note n : notes) n.update(getAudioTime(), scoreManager);
+
+            // [FIX] Ubah 2.0 menjadi 0.5 (setengah detik) atau 0 (langsung)
+            if (!audio.isPlaying() && (System.nanoTime() / 1e9 - startTime) > 0.1) { 
+                running = false;
+                SwingUtilities.invokeLater(() -> {
+                    Main.showResult(scoreManager.getScore(), scoreManager.getCombo(), currentJsonPath);
+                });
+            }
         }
 
-        public void handlePress(int lane) {
-                if (!running)
-                    return;
+        public void handlePress(int lane, boolean isFirstPress) {
+    if (!running) return;
 
-                SFXManager.play("normal");
+    // HANYA BUNYI JIKA INI TEKANAN PERTAMA (Bukan tahanan)
+    if (isFirstPress) {
+        SFXManager.play("normal");
+    }
 
-                double now = getAudioTime();
-                Note closest = null;
-                double minDiff = Double.MAX_VALUE;
-                for (Note n : notes) {
-                    if (n.lane == lane && !n.isHit && !n.isMissed) {
-                        double diff = n.time - now;
-                        if (Math.abs(diff) < minDiff) {
-                            minDiff = Math.abs(diff);
-                            closest = n;
-                        }
-                    }
-                }
-                if (closest != null && minDiff <= Judgement.MISS.window) {
-                closest.onKeyPressed(closest.time - now, scoreManager);
-            } else {
-            
+    double now = getAudioTime();
+    Note closest = null;
+    double minDiff = Double.MAX_VALUE;
+    
+    // ... (logika for loop mencari note tetap sama) ...
+    for (Note n : notes) {
+        if (n.lane == lane && !n.isHit && !n.isMissed) {
+            double diff = n.time - now;
+            if (Math.abs(diff) < minDiff) {
+                minDiff = Math.abs(diff);
+                closest = n;
+            }
+        }
+    }
+
+    if (closest != null && minDiff <= Judgement.MISS.window) {
+        // Logika Hit jalan terus (agar hold note aman)
+        closest.onKeyPressed(closest.time - now, scoreManager);
+    } else {
+        // HANYA BUNYI FAILED JIKA TEKANAN PERTAMA (Bukan tahanan)
+        if (isFirstPress) {
             SFXManager.play("failed");
             System.out.println("Press ignored (out of judgement window). diff=" + minDiff);
         }
-        }
+    }
+}
 
         public void handleRelease(int lane) {
             if (!running)
@@ -533,17 +596,24 @@ public class RhythmGame extends JPanel implements Runnable {
         public void initializeGame(String path) {
             try {
                 engine.loadBeatmap(path);
+                
                 if (engine.getBackgroundPath() != null) {
                     backgroundImage = Toolkit.getDefaultToolkit().createImage(engine.getBackgroundPath());
                 }
+                
                 input = new InputController(engine, engine.getLanes());
                 addKeyListener(input);
+                
+                // Mulai Thread Grafis
                 new Thread(this).start();
+                
+                // [FIX UTAMA LAGU] MULAI ENGINE SECARA OTOMATIS!
+                engine.start(); 
+                
             } catch (Exception e) {
                 e.printStackTrace();
             }
         }
-
         
         private void drawLanes(Graphics2D g) {
             int lanes = engine.getLanes();
@@ -657,48 +727,5 @@ public class RhythmGame extends JPanel implements Runnable {
     
 
 
-   public void start(String beatmapPath) {
-        // Tidak ada new JFrame() disini!
-        
-        engine = new GameEngine(); // Reset Engine
-        try {
-            engine.loadBeatmap(beatmapPath);
-            
-            // Load Background
-            if (engine.getBackgroundPath() != null) {
-                backgroundImage = Toolkit.getDefaultToolkit().createImage(engine.getBackgroundPath());
-            } else {
-                backgroundImage = null;
-            }
-
-            // Reset Listener
-            for(KeyListener k : getKeyListeners()) removeKeyListener(k);
-            
-            input = new InputController(engine, engine.getLanes());
-            addKeyListener(input);
-            
-            // Listener ESC
-            addKeyListener(new KeyAdapter() {
-                @Override
-                public void keyPressed(KeyEvent e) {
-                    if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
-                        stopGame();
-                        Main.showSongSelectStatic(); 
-                    }
-                }
-            });
-
-            // Start Thread
-            if (gameThread != null && gameThread.isAlive()) gameThread.interrupt();
-            gameThread = new Thread(this);
-            gameThread.start();
-            
-            this.requestFocusInWindow();
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Error: " + e.getMessage());
-            Main.showSongSelectStatic();
-        }
-    }
+   
 }
