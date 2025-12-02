@@ -51,6 +51,12 @@ public class MenuPanel extends JPanel {
                 JOptionPane.showMessageDialog(this, "Username kamu: " + Session.username));
         add(profile);
 
+        // ===== TOMBOL LEADERBOARD =====
+        JButton leaderboard = new JButton("Leaderboard");   
+        leaderboard.setBounds(270, 370, 260, 45);
+        leaderboard.addActionListener(e -> main.goToLeaderBoard());
+        add(leaderboard);
+
         // ===== TOMBOL LOGOUT =====
         JButton logout = new JButton("Logout");
         logout.setBounds(270, 310, 260, 45);
