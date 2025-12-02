@@ -49,6 +49,12 @@ public class Main extends JFrame {
         showPanel("songselect");
     }
 
+    public void goToLeaderBoard() {
+        LeaderBoard lbPanel = new LeaderBoard(this);
+        container.add(lbPanel, "LEADERBOARD");
+        showPanel("LEADERBOARD");
+    }
+
 
     // Dipanggil ketika login sukses
     public void onLoginSuccess(String username) {
