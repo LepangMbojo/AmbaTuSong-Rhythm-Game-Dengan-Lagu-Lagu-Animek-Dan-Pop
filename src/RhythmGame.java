@@ -8,28 +8,147 @@ import java.util.*;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-public class RhythmGame {
 
-    public static void main(String[] args) {
+public class RhythmGame extends JPanel implements Runnable {
+    
+    private final int WIDTH = 1000, HEIGHT = 600, NOTE_WIDTH = 60, HIT_Y = HEIGHT - 90;
+    private final Color[] LANE_COLORS = { Color.RED, Color.CYAN, Color.GREEN, Color.YELLOW, Color.MAGENTA };
+    
+    private GameEngine engine;
+    private InputController input;
+    private Image backgroundImage;
+    private Thread gameThread;
 
-        SwingUtilities.invokeLater(() -> {
-            try {
-                JFrame frame = new JFrame("Ambatusong");
-                frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-                frame.setResizable(false);
+    private long introStartTime = 0; 
+    private boolean engineStarted = false;
+    
+    
+    public void start(String beatmapPath) {
+    if (engine != null) {
+        engine.stop(); 
+        engine = null; 
+    }
 
-                GamePanel panel = new GamePanel();
-                frame.add(panel);
-                frame.pack();
-                frame.setLocationRelativeTo(null);
-                frame.setVisible(true);
-                panel.initializeGame(args[0]);
+    if (gameThread != null) {
+       
+        Thread oldThread = gameThread; 
+        gameThread = null; 
+        oldThread.interrupt(); 
+    }
 
-            } catch (Exception e) {
-                e.printStackTrace();
-                JOptionPane.showMessageDialog(null, "Error: " + e.getMessage());
+    engine = new GameEngine(); 
+    try {
+        engine.loadBeatmap(beatmapPath);
+        
+        if (engine.getBackgroundPath() != null) {
+            backgroundImage = Toolkit.getDefaultToolkit().createImage(engine.getBackgroundPath());
+        } else {
+            backgroundImage = null;
+        }
+
+        for(KeyListener k : getKeyListeners()) removeKeyListener(k);
+        
+        input = new InputController(engine, engine.getLanes());
+        addKeyListener(input);
+        
+        addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
+                    stopGame(); 
+                    Main.showCard("SONG_SELECT"); 
+                }
             }
         });
+
+        engineStarted = false; 
+        
+        introStartTime = 0; 
+
+        gameThread = new Thread(this);
+        gameThread.start();
+        
+        this.requestFocusInWindow();
+
+
+    } catch (Exception e) {
+        e.printStackTrace();
+        JOptionPane.showMessageDialog(this, "Error: " + e.getMessage());
+        Main.showCard("SONG_SELECT");
+    }
+}   
+
+    public void stopGame() {
+    
+    Thread moribund = gameThread;
+    gameThread = null; 
+    if (moribund != null) {
+        moribund.interrupt();
+    }
+
+    if (engine != null) {
+        engine.stop(); 
+    }
+    
+    engineStarted = false;
+}
+
+ @Override
+    protected void paintComponent(Graphics g) {
+        super.paintComponent(g);
+        Graphics2D g2 = (Graphics2D) g;
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+        int w = getWidth();
+        int h = getHeight();
+
+        if (backgroundImage != null) {
+            g2.drawImage(backgroundImage, 0, 0, w, h, this);
+            g2.setColor(new Color(0, 0, 0, 150)); 
+            g2.fillRect(0, 0, w, h);
+        }
+
+        if (engine == null) return;
+
+        drawLanes(g2);
+        
+        if (engineStarted) {
+            drawNotes(g2);
+        }
+        
+        drawUI(g2);
+
+        double time = (System.currentTimeMillis() - introStartTime) / 1000.0;
+
+        if (time < 3.0) {
+            String text = "";
+            Color textColor = Color.WHITE;
+            if (time >= 0.0 && time < 1.0) {
+                text = "AMBA"; textColor = Color.CYAN;
+            } 
+            else if (time >= 1.0 && time < 2.0) {
+                text = "TU"; textColor = Color.YELLOW;
+            } 
+            else if (time >= 2.0 && time < 3.0) {
+                text = "SONG"; textColor = Color.MAGENTA;
+            }
+            
+                  
+            if (!text.isEmpty()) {
+                g2.setFont(new Font("Arial", Font.BOLD, 150));
+                FontMetrics fm = g2.getFontMetrics();
+                int textW = fm.stringWidth(text);
+                int textH = fm.getAscent();
+                
+                int x = (w - textW) / 2;
+                int y = (h + textH) / 2 - 20;
+                
+                g2.setColor(Color.BLACK);
+                g2.drawString(text, x + 5, y + 5); 
+                g2.setColor(textColor);
+                g2.drawString(text, x, y);        
+            }
+        }
     }
 
     // ==========================================
@@ -46,6 +165,7 @@ public class RhythmGame {
             load("clap",   "sfx/soft-hitclap.wav");
             load("finish", "sfx/soft-hitfinish.wav");
             load("failed", "sfx/combobreak.wav");
+            load("start", "sfx/ambatukams.wav");
         }
 
         private static void load(String name, String path) {
@@ -170,6 +290,7 @@ public class RhythmGame {
             if (!isHit && !isMissed && currentTime > time + Judgement.MISS.window) {
                 isMissed = true;
                 sm.addScore(Judgement.MISS);
+                SFXManager.play("failed");
             }
         }
 
@@ -212,6 +333,7 @@ public class RhythmGame {
             if (!isHolding && !isHit && !isMissed && currentTime > time + Judgement.MISS.window) {
                 isMissed = true;
                 sm.addScore(Judgement.MISS);
+                SFXManager.play("failed");
             }
         }
 
@@ -234,6 +356,7 @@ public class RhythmGame {
                 } else {
                     isMissed = true;
                     sm.addScore(Judgement.MISS);
+                    SFXManager.play("failed");
                 }
                 isHolding = false;
             }
@@ -275,6 +398,23 @@ public class RhythmGame {
         public boolean isPlaying() {
             return clip != null && clip.isRunning();
         }
+
+    public void close() {
+        
+        if (clip != null) {
+            
+            if (clip.isRunning()) {
+                clip.stop();
+            }
+            
+            // 2. Bersihkan buffer data yang mungkin tersisa
+            clip.flush();
+            
+            // 3. Tutup jalur audio 
+            clip.close();
+            
+        }
+    }
     }
 
     static class ScoreManager {
@@ -315,19 +455,18 @@ public class RhythmGame {
         }
 
         @Override
-        public void keyPressed(KeyEvent e) {
-            Integer lane = keyToLaneMap.get(e.getKeyCode());
-            if (lane != null) {
-
-                if (!keysHeld[lane]) {
-                    keysHeld[lane] = true;
-                    engine.handlePress(lane);
-                }
-            } else {
-                if (!engine.isRunning())
-                    engine.start();
-            }
-        }
+public void keyPressed(KeyEvent e) {
+    Integer lane = keyToLaneMap.get(e.getKeyCode());
+    if (lane != null) {
+        
+        boolean isFirstPress = !keysHeld[lane];
+        keysHeld[lane] = true;
+        
+        // Kirim status isFirstPress ke engine
+        engine.handlePress(lane, isFirstPress); 
+    } 
+    // ...
+}
 
         @Override
         public void keyReleased(KeyEvent e) {
@@ -356,32 +495,34 @@ public class RhythmGame {
         private int lanes = 4;
         private double approachTime = 2.0;
         private String backgroundPath;
+        private String currentJsonPath;
+        private String bgPath;
+
 
         public void loadBeatmap(String jsonPath) throws Exception {
-            SFXManager.loadSounds();
-            Gson gson = new Gson();
-            BeatmapData bm = gson.fromJson(new FileReader(jsonPath), BeatmapData.class);
-            this.lanes = bm.lanes;
-            this.approachTime = bm.approachTime;
+            this.currentJsonPath = jsonPath;
 
-            File jsonFile = new File(jsonPath);
-            if (bm.background != null && !bm.background.isEmpty()) {
-                this.backgroundPath = new File(jsonFile.getParent(), bm.background).getAbsolutePath();
-            }
-
-            String audioPath = new File(jsonFile.getParent(), bm.audioFile).getAbsolutePath();
-            try {
-                audio.load(audioPath);
-            } catch (Exception e) {
-                System.err.println("Warning: Audio load failed.");
-            }
-
+           SFXManager.loadSounds();
+            Gson g = new Gson();
+            BeatmapData bm = g.fromJson(new FileReader(jsonPath), BeatmapData.class);
+            lanes = bm.lanes;
+            approachTime = bm.approachTime;
+            File jf = new File(jsonPath);
+            if (bm.background != null) bgPath = new File(jf.getParent(), bm.background).getAbsolutePath();
+            try { audio.load(new File(jf.getParent(), bm.audioFile).getAbsolutePath()); } catch (Exception e) {}
             notes.clear();
-            for (NoteJSON n : bm.notes) {
-                if ("hold".equalsIgnoreCase(n.type))
-                    notes.add(new HoldNote(n.lane, n.time, n.length));
-                else
-                    notes.add(new TapNote(n.lane, n.time));
+            for (NoteJSON n : bm.notes)
+                if ("hold".equalsIgnoreCase(n.type)) notes.add(new HoldNote(n.lane, n.time, n.length));
+                else notes.add(new TapNote(n.lane, n.time));
+            // GANTI BAGIAN LOAD BACKGROUND DENGAN INI:
+            if (bm.background != null && !bm.background.isEmpty()) {
+                File bgFile = new File(jf.getParent(), bm.background);
+                if (bgFile.exists()) {
+                    this.backgroundPath = bgFile.getAbsolutePath();
+                } else {
+                    System.out.println("Warning: Background image not found at: " + bgFile.getAbsolutePath());
+                    this.backgroundPath = null;
+                }
             }
         }
 
@@ -391,39 +532,71 @@ public class RhythmGame {
             startTime = System.nanoTime() / 1_000_000_000.0;
         }
 
-        public void update() {
-            if (!running)
-                return;
-            for (Note n : notes)
-                n.update(getAudioTime(), scoreManager);
+public void update() {
+    if (!running) return;
+
+    double currentTime = getAudioTime();
+
+    if (!audio.isPlaying() && currentTime > 2.0) { 
+        running = false; 
+        
+        if (audio != null) {
+            audio.stop();  
+            audio.close(); 
         }
 
-        public void handlePress(int lane) {
-            if (!running)
-                return;
+        SwingUtilities.invokeLater(() -> {
+            Main.showResult(scoreManager.getScore(), scoreManager.getCombo(), currentJsonPath);
+        });
+        
+        return; 
+    }
 
+    for (Note n : notes) {
+        n.update(currentTime, scoreManager);
+    }
+}
+
+        public void stop() {
+            if (audio != null && audio.isPlaying()) {
+                audio.stop();   
+                audio.close(); 
+            }
+        }
+
+    public void handlePress(int lane, boolean isFirstPress) {
+        if (!running) return;
+
+        if (isFirstPress) {
             SFXManager.play("normal");
+        }
 
-            double now = getAudioTime();
-            Note closest = null;
-            double minDiff = Double.MAX_VALUE;
-            for (Note n : notes) {
-                if (n.lane == lane && !n.isHit && !n.isMissed) {
-                    double diff = n.time - now;
-                    if (Math.abs(diff) < minDiff) {
-                        minDiff = Math.abs(diff);
-                        closest = n;
-                    }
+        double now = getAudioTime();
+        Note closest = null;
+        double minDiff = Double.MAX_VALUE;
+        
+        for (Note n : notes) {
+            if (n.lane == lane && !n.isHit && !n.isMissed) {
+                double diff = n.time - now;
+                if (Math.abs(diff) < minDiff) {
+                    minDiff = Math.abs(diff);
+                    closest = n;
                 }
             }
-             if (closest != null && minDiff <= Judgement.MISS.window) {
-        closest.onKeyPressed(closest.time - now, scoreManager);
-    } else {
-        
-        SFXManager.play("failed");
-        System.out.println("Press ignored (out of judgement window). diff=" + minDiff);
-    }
         }
+
+        if (closest != null && minDiff <= Judgement.MISS.window) {
+            
+            closest.onKeyPressed(closest.time - now, scoreManager);
+        } else {
+            
+            if (isFirstPress) {
+                scoreManager.addScore(Judgement.MISS);
+                SFXManager.play("failed");
+                System.out.println("Press ignored (out of judgement window). diff=" + minDiff);
+            }
+        }
+    }
 
         public void handleRelease(int lane) {
             if (!running)
@@ -434,8 +607,17 @@ public class RhythmGame {
         }
 
         public double getAudioTime() {
-            return audio.isPlaying() ? audio.getPosition() : (System.nanoTime() / 1e9) - startTime;
+        // KONDISI 1: Jika Audio Sedang Jalan -> Percaya pada Audio (Paling Akurat)
+        if (audio.isPlaying()) {
+            return audio.getPosition(); 
+        } 
+        // KONDISI 2: Jika Audio Belum Jalan (Intro) -> Pakai Hitungan Manual (Bisa Minus)
+        else {
+            // Rumus: Waktu Sekarang - Waktu Target
+            // Contoh: Sekarang detik 10. Target detik 13. Hasil = -3.0 (Intro)
+            return (System.nanoTime() / 1e9) - startTime;
         }
+}
 
         public boolean isRunning() {
             return running;
@@ -470,53 +652,15 @@ public class RhythmGame {
     // VIEW: Rendering
     // ==========================================
 
-    static class GamePanel extends JPanel implements Runnable {
-        private final int WIDTH = 1000, HEIGHT = 600, NOTE_WIDTH = 60, HIT_Y = HEIGHT - 50;
-        private GameEngine engine;
-        private InputController input;
-        private final Color[] LANE_COLORS = { Color.RED, Color.CYAN, Color.GREEN, Color.YELLOW, Color.MAGENTA };
-        private Image backgroundImage;
 
-        public GamePanel() {
+        public RhythmGame() {
             setPreferredSize(new Dimension(WIDTH, HEIGHT));
             setBackground(Color.BLACK);
             setFocusable(true);
             engine = new GameEngine();
         }
 
-        public void initializeGame(String path) {
-            try {
-                engine.loadBeatmap(path);
-                if (engine.getBackgroundPath() != null) {
-                    backgroundImage = Toolkit.getDefaultToolkit().createImage(engine.getBackgroundPath());
-                }
-                input = new InputController(engine, engine.getLanes());
-                addKeyListener(input);
-                new Thread(this).start();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-
-        @Override
-        public void paintComponent(Graphics g) {
-            super.paintComponent(g);
-            Graphics2D g2 = (Graphics2D) g;
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
-            if (backgroundImage != null) {
-                g2.drawImage(backgroundImage, 0, 0, WIDTH, HEIGHT, this);
-                g2.setColor(new Color(0, 0, 0, 150));
-                g2.fillRect(0, 0, WIDTH, HEIGHT);
-            }
-
-            if (engine == null)
-                return;
-            drawLanes(g2);
-            drawNotes(g2);
-            drawUI(g2);
-        }
-
+        
         private void drawLanes(Graphics2D g) {
             int lanes = engine.getLanes();
             int startX = (WIDTH - (lanes * NOTE_WIDTH)) / 2;
@@ -607,24 +751,35 @@ public class RhythmGame {
             g.setFont(new Font("Arial", Font.BOLD, 20));
             g.drawString("Score: " + engine.getScore(), 20, 30);
             g.drawString("Combo: " + engine.getCombo(), 20, 60);
-            if (!engine.isRunning()) {
-                String msg = "Press any key to start";
-                int w = g.getFontMetrics().stringWidth(msg);
-                g.drawString(msg, (WIDTH - w) / 2, HEIGHT / 2);
-            }
         }
 
-        @Override
-        public void run() {
-            while (true) {
-                engine.update();
-                repaint();
-                try {
-                    Thread.sleep(16);
-                } catch (InterruptedException e) {
-                    break;
-                }
-            }
+   @Override
+public void run() {
+
+    introStartTime = System.currentTimeMillis(); 
+
+    boolean soundIntroPlayed = false;
+
+    while (Thread.currentThread() == gameThread) {
+        
+        double time = (System.currentTimeMillis() - introStartTime) / 1000.0;
+
+        if (!soundIntroPlayed) {
+            SFXManager.play("start"); 
+            soundIntroPlayed = true;
         }
+
+        if (time >= 3.0 && !engineStarted) {
+            if (engine != null) engine.start();
+            engineStarted = true;
+        }
+
+        if (engine != null && engineStarted) {
+        engine.update();
+        }
+        
+        repaint(); 
     }
+}
+
 }
