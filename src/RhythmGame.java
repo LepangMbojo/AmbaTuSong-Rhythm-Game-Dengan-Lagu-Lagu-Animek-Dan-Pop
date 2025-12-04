@@ -552,10 +552,6 @@ public void update() {
         return; 
     }
 
-    if (running && currentTime >= 0 && !audio.isPlaying()) {
-        audio.play();
-    }
-
     for (Note n : notes) {
         n.update(currentTime, scoreManager);
     }
