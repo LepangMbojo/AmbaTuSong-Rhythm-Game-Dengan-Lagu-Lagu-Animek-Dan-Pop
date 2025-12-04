@@ -28,7 +28,7 @@ public class LeaderboardPanel extends JPanel {
         table.setBackground(new Color(40, 40, 50));
         table.setForeground(Color.WHITE);
         table.setGridColor(Color.GRAY);
-        table.setEnabled(false); // Biar gak bisa diedit user
+        table.setEnabled(false);
 
         // Styling Header Tabel
         DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();

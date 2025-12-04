@@ -25,19 +25,19 @@ public class Main extends JFrame {
 
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         
-        // --- [FIX] UKURAN TETAP 1000x600 (TIDAK FULL SCREEN) ---
+        // UKURAN TETAP 1000x600 
         setSize(1000, 600);
         setResizable(false); // Agar tidak bisa diubah ukurannya
-        setLocationRelativeTo(null); // Posisi tengah layar
+        setLocationRelativeTo(null);
 
         cardLayout = new CardLayout();
         mainPanel = new JPanel(cardLayout);
 
         // Inisialisasi Panel
-        try { loginPanel = new LoginPanel(this); } catch (Exception e) {}
-        try { registerPanel = new RegisterPanel(this); } catch (Exception e) {}
-        try { menuPanel = new MenuPanel(this); } catch (Exception e) {}
-        try { leaderboardPanel = new LeaderboardPanel(this); } catch (Exception e) {}
+        loginPanel = new LoginPanel(this); 
+        registerPanel = new RegisterPanel(this);
+        menuPanel = new MenuPanel(this); 
+        leaderboardPanel = new LeaderboardPanel(this); 
 
         
         songSelectPanel = new SongSelectPanel(this);
@@ -58,10 +58,10 @@ public class Main extends JFrame {
         add(mainPanel);
         setVisible(true);
 
-        showCard("LOGIN"); // Langsung ke Menu
+        showCard("LOGIN"); 
     }
 
-    // --- METHOD NAVIGASI ---
+    //METHOD NAVIGASI
     public static void showCard(String cardName) {
         if (instance != null) {
             if (cardName.equals("MENU") || cardName.equals("SONG_SELECT") || cardName.equals("RESULT")) {
@@ -84,9 +84,9 @@ public class Main extends JFrame {
 
     public static void playGame(String beatmapPath) {
         if (instance != null) {
-            instance.rhythmGamePanel.start(beatmapPath); // Siapkan game
-            instance.cardLayout.show(instance.mainPanel, "GAME"); // Tampilkan panel game
-            instance.rhythmGamePanel.requestFocusInWindow(); // Fokus keyboard
+            instance.rhythmGamePanel.start(beatmapPath); 
+            instance.cardLayout.show(instance.mainPanel, "GAME"); 
+            instance.rhythmGamePanel.requestFocusInWindow(); 
         }
     }
     
@@ -97,13 +97,23 @@ public class Main extends JFrame {
         }
     }
     
-    public void showPanel(String name) { showCard(name); }
-    public void goToSongSelect() { showCard("SONG_SELECT"); }
-    public static void showSongSelectStatic() { showCard("SONG_SELECT"); }
-    public void showLeaderboard() { showCard("LEADERBOARD"); }
+    public void showPanel(String name) { 
+        showCard(name); 
+    }
+
+    public void goToSongSelect() { 
+        showCard("SONG_SELECT"); 
+    }
+
+    public static void showSongSelectStatic() {
+        showCard("SONG_SELECT"); 
+    }
+
+    public void showLeaderboard() { 
+        showCard("LEADERBOARD"); 
+    }
     
     public void onLoginSuccess(String user) {
-        JOptionPane.showMessageDialog(this, "Welcome, " + user + "!");
         showCard("MENU");
     }
 }

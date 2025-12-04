@@ -10,7 +10,7 @@ public class ResultPanel extends JPanel {
     public ResultPanel(Main main) {
         this.main = main;
         setLayout(new GridBagLayout());
-        setBackground(new Color(20, 20, 30)); // Warna gelap
+        setBackground(new Color(20, 20, 30)); 
 
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(10, 10, 10, 10);
@@ -18,7 +18,7 @@ public class ResultPanel extends JPanel {
         gbc.gridx = 0;
 
         // --- TITLE ---
-        lblTitle = new JLabel("SONG CLEARED!", SwingConstants.CENTER);
+        lblTitle = new JLabel("YOU BASING!", SwingConstants.CENTER);
         lblTitle.setFont(new Font("Arial", Font.BOLD, 40));
         lblTitle.setForeground(Color.CYAN);
         gbc.gridy = 0;
@@ -62,7 +62,7 @@ public class ResultPanel extends JPanel {
         styleButton(btnRetry);
         styleButton(btnMenu);
 
-        btnRetry.addActionListener(e -> main.playGame(Session.currentSongTitle)); // Simplifikasi path
+        btnRetry.addActionListener(e -> main.playGame(Session.currentSongTitle)); 
         btnMenu.addActionListener(e -> main.showCard("SONG_SELECT"));
 
         btnPanel.add(btnRetry);
@@ -86,11 +86,11 @@ public class ResultPanel extends JPanel {
         
         lblUser.setText("Player: " + Session.username);
         lblScore.setText("Score: " + score);
-        lblCombo.setText("Max Combo: " + combo);
+        lblCombo.setText("Combo: " + combo);
         
         // Tentukan Grade
         String grade;
-        if (score >= 500000) grade = "S";
+        if (score >= 50000) grade = "S";
         else if (score >= 30000) grade = "A";
         else if (score >= 20000) grade = "B";
         else grade = "C";

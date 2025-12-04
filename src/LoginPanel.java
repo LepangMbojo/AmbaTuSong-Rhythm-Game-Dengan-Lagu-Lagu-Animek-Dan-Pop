@@ -11,11 +11,12 @@ public class LoginPanel extends JPanel {
 
     public LoginPanel(Main main) {
         this.main = main;
-        setLayout(new GridBagLayout()); // Gunakan GridBag agar center otomatis
+        setLayout(new GridBagLayout()); 
         GridBagConstraints gbc = new GridBagConstraints();
 
         // === LOAD BACKGROUND ===
-        try { backgroundImage = new ImageIcon("beatmaps/bg.jpeg").getImage(); } catch (Exception e) {}
+            backgroundImage = new ImageIcon("beatmaps/MainAmba.png").getImage(); 
+    
 
         gbc.insets = new Insets(10, 10, 10, 10);
         gbc.fill = GridBagConstraints.HORIZONTAL;
@@ -105,7 +106,7 @@ public class LoginPanel extends JPanel {
             ResultSet rs = ps.executeQuery();
 
             if (rs.next()) {
-                Session.username = user; // Simpan session
+                Session.username = user; 
                 main.onLoginSuccess(user);
             } else {
                 JOptionPane.showMessageDialog(this, "Username atau password salah!");

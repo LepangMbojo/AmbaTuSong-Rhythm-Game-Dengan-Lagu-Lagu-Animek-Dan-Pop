@@ -14,8 +14,7 @@ public class RegisterPanel extends JPanel {
         setLayout(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
 
-        try { backgroundImage = new ImageIcon("beatmaps/bg.jpeg").getImage(); } catch (Exception e) {}
-
+            backgroundImage = new ImageIcon("beatmaps/MainAmba.png").getImage(); 
         gbc.insets = new Insets(10, 10, 10, 10);
         gbc.fill = GridBagConstraints.HORIZONTAL;
 

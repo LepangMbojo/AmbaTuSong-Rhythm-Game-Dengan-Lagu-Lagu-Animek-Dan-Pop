@@ -8,10 +8,10 @@ public class MenuPanel extends JPanel {
 
     public MenuPanel(Main main) {
         this.main = main;
-        setLayout(null); // Layout Bebas (Manual)
+        setLayout(null); 
 
         // Load Background
-        try { backgroundImage = new ImageIcon("beatmaps/bg.jpeg").getImage(); } catch (Exception e) {}
+            backgroundImage = new ImageIcon("beatmaps/MainAmba.png").getImage(); 
 
         // Posisi Tengah Horizontal: (1000 - Lebar) / 2
         // Lebar Tombol: 300, Tinggi: 50

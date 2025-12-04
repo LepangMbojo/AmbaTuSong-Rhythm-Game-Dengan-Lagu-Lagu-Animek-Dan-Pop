@@ -8,7 +8,7 @@ public class KoneksiDatabase {
     private static final String USER = "root";
     private static final String PASS = "";
 
-    // --- [FIX] TAMBAHKAN METHOD INI AGAR LOGIN/REGISTER BISA JALAN ---
+
     public static Connection getConnection() throws SQLException {
         return DriverManager.getConnection(URL, USER, PASS);
     }
