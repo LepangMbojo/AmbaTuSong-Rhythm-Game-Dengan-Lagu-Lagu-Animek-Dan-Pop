@@ -455,18 +455,17 @@ public class RhythmGame extends JPanel implements Runnable {
         }
 
         @Override
-public void keyPressed(KeyEvent e) {
-    Integer lane = keyToLaneMap.get(e.getKeyCode());
-    if (lane != null) {
-        
-        boolean isFirstPress = !keysHeld[lane];
-        keysHeld[lane] = true;
-        
-        // Kirim status isFirstPress ke engine
-        engine.handlePress(lane, isFirstPress); 
-    } 
-    // ...
-}
+        public void keyPressed(KeyEvent e) {
+            Integer lane = keyToLaneMap.get(e.getKeyCode());
+            if (lane != null) {
+                
+                boolean isFirstPress = !keysHeld[lane];
+                keysHeld[lane] = true;
+                
+                // Kirim status isFirstPress ke engine
+                engine.handlePress(lane, isFirstPress); 
+            } 
+        }
 
         @Override
         public void keyReleased(KeyEvent e) {

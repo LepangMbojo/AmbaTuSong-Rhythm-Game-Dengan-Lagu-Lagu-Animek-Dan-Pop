@@ -101,9 +101,7 @@ public class RegisterPanel extends JPanel {
             ps.setString(2, pass);
             ps.executeUpdate();
 
-            JOptionPane.showMessageDialog(this, "Registrasi berhasil! Silakan Login.");
-            main.showPanel("LOGIN");
-
+            
         } catch (SQLException ex) {
             ex.printStackTrace();
             JOptionPane.showMessageDialog(this, "Gagal Daftar: " + ex.getMessage());
