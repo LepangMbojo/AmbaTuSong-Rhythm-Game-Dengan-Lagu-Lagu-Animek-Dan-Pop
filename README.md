@@ -1,7 +1,7 @@
 # AmbaTuSong-Rhythm-game-dengan-lagu-lagu-daerah-dan-pop
 
 ## Anggota Kelompok:
-1. M.Kalid Al Rezeki (F1D02310122)
+1. M.Khalid Al Rejeki (F1D02310122)
 2. Salsa Reike Maharani (F1D02310136)
 3. Zainul Majdi (F1D02310028)
 4. Nur Adinda Juniarti (F1D02310129)
